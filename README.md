@@ -8,6 +8,6 @@ All the information provided on this site are for educational purposes only. The
 1. Edit the content of the LifExp.java file to suit your target os system
 2. Run python poc.py -h for help
 
-example: ```python poc.py -t https://target.com/ -u api/jsonws -l your_vps_ip -p your_designated_port```
+example: ```python poc.py -t https://target.com/ -u api/jsonws -l 127.0.0.1 -p your_designated_port```
 
 
