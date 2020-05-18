@@ -1,3 +1,6 @@
+
+## Credit goes to @mzer0one
+/
 # CVE-2020-7961-POC
 
 
